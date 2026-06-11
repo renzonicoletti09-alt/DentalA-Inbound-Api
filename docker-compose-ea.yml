@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root_easy_appointments_secure_2026
+      MYSQL_DATABASE: easyappointments
+      MYSQL_USER: ea_user
+      MYSQL_PASSWORD: ea_password_secure
+    volumes:
+      - ea_mysql_data:/var/lib/mysql
+    networks:
+      - coolify
+
+  app:
+    image: alextselegidis/easyappointments:latest
+    environment:
+      BASE_URL: https://agenda.dental-a.com
+      DB_HOST: mysql
+      DB_NAME: easyappointments
+      DB_USERNAME: ea_user
+      DB_PASSWORD: ea_password_secure
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.ea-app.rule=Host(`agenda.dental-a.com`)
+      - traefik.http.services.ea-app.loadbalancer.server.port=80
+    networks:
+      - coolify
+    depends_on:
+      - mysql
+
+volumes:
+  ea_mysql_data:
+
+networks:
+  coolify:
+    external: true
