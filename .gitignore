@@ -1,0 +1,30 @@
+# ====================================================================
+# DentalA - GITIGNORE (Seguridad y Hardening)
+# ====================================================================
+
+# Archivos de entorno con credenciales secretas (¡NUNCA SUBIR!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.env
+*.env
+
+# Logs de error y depuración
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Dependencias de paquetes
+node_modules/
+jspm_packages/
+
+# Archivos de configuración del sistema operativo o IDEs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.gemini/antigravity/scratch/
