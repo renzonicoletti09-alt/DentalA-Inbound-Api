@@ -1,0 +1,51 @@
+# Configuración Segura de LiteLLM (config.yaml) - DentalA
+# Este archivo define la redundancia de modelos, balanceo de carga,
+# y rate limiting utilizando Redis para proteger contra abusos de costos.
+
+model_list:
+  # 1. Claude 4.6 Sonnet (Modelo principal para FAQ compleja y Agendamiento)
+  - model_name: claude-4.6-sonnet
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20241022  # Mapea al modelo real en Anthropic
+      api_key: "os.environ/ANTHROPIC_API_KEY"       # Leído seguro del entorno
+      max_tokens: 1024
+      timeout: 10                                  # Timeout de 10s para evitar cuelgues
+
+  # 2. ChatGPT 5.4 mini (Modelo rápido para triage, clasificación y baja latencia)
+  - model_name: chatgpt-5.4-mini
+    litellm_params:
+      model: openai/gpt-4o-mini                     # Mapea al modelo real en OpenAI
+      api_key: "os.environ/OPENAI_API_KEY"          # Leído seguro del entorno
+      max_tokens: 512
+      timeout: 5
+
+  # 3. Gemini 1.5 Pro (Modelo de fallback de alta gama si falla Anthropic)
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: gemini/gemini-1.5-pro
+      api_key: "os.environ/GEMINI_API_KEY"
+      max_tokens: 1024
+      timeout: 10
+
+# Configuración del Router y Fallbacks (Redundancia automática)
+router_settings:
+  routing_strategy: latency-based-routing
+  redis_host: "os.environ/REDIS_HOST"              # Conexión local a Redis
+  redis_port: "os.environ/REDIS_PORT"
+  redis_password: "os.environ/REDIS_PASSWORD"
+  
+  # Políticas de Fallback ante fallos de proveedores (5xx, Rate Limits, timeouts)
+  fallbacks:
+    - claude-4.6-sonnet: ["gemini-1.5-pro"]        # Si falla Claude, derivar de inmediato a Gemini Pro
+
+# General Settings: Habilitar control de costos y rate limiting
+general_settings:
+  # Habilitar el tracking de costos y consumos por API Key y por 'user'
+  master_key: "os.environ/LITELLM_MASTER_KEY"       # Clave maestra de administración
+  database_url: "os.environ/DATABASE_URL"          # Supabase Postgres para guardar auditorías de tokens
+  
+  # Integración de Rate Limiting con Redis
+  # Bloquea llamadas masivas repetitivas por IP o por usuario
+  rate_limit_redis_host: "os.environ/REDIS_HOST"
+  rate_limit_redis_port: "os.environ/REDIS_PORT"
+  rate_limit_redis_password: "os.environ/REDIS_PASSWORD"
