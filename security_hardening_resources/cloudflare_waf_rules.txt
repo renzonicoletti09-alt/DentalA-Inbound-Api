@@ -1,0 +1,46 @@
+# ====================================================================
+# REGLAS DE SEGURIDAD CLOUDFLARE WAF Y RATE LIMITING (DENTALA)
+# ====================================================================
+# Configurar estas reglas en la consola web de Cloudflare (Security -> WAF)
+# para proteger los endpoints expuestos de n8n sin afectar la producción.
+
+# --------------------------------------------------------------------
+# REGLA 1: RATE LIMITING PARA WEBHOOKS ENTRANTES
+# --------------------------------------------------------------------
+# Previene inundaciones de peticiones (DDoS) a los endpoints lógicos de n8n.
+# Configurar en: Security -> WAF -> Rate Limiting Rules
+
+- Nombre: "Bloqueo por abuso en Webhooks"
+- Filtro (Cuando la petición coincide con):
+  - URI Path contiene "/webhook/"
+- Rate (Límite):
+  - 60 peticiones por cada 1 Minuto
+- Acción:
+  - Block (Bloquear) con respuesta HTTP 429 (Too Many Requests)
+- Nota: Ajustar a 100 si la clínica tiene ráfagas masivas de llamadas concurrentes de Vapi.
+
+
+# --------------------------------------------------------------------
+# REGLA 2: REGLA WAF - AISLAMIENTO DE CONSOLAS ADMINISTRATIVAS
+# --------------------------------------------------------------------
+# Si no usas Cloudflare Tunnels (Zero Trust), protege los subdominios
+# administrativos obligando a realizar un desafío (Challenge) interactivo.
+# Configurar en: Security -> WAF -> Firewall Rules
+
+- Nombre: "Desafío en Panel Administrativo"
+- Filtro:
+  - (http.host eq "coolify.tudominio.com" or http.host eq "n8n.tudominio.com") and not ip.src in { TU_IP_DE_CASA_U_OFICINA }
+- Acción:
+  - Managed Challenge (Desafío administrado / Turnstile)
+- Nota: Si usas Cloudflare Access (MFA por OTP de email), esta regla es redundante pero sirve como doble escudo.
+
+
+# --------------------------------------------------------------------
+# REGLA 3: BLOQUEO DE PETICIONES HTTP NO SEGURAS (FORZAR SSL STRICT)
+# --------------------------------------------------------------------
+# Asegura que ningún dato clínico viaje desprotegido.
+
+- Activar en SSL/TLS -> Edge Certificates:
+  - Always Use HTTPS: ON
+  - HSTS (HTTP Strict Transport Security): ON (Duración: 6 meses, Include Subdomains: ON)
+  - SSL/TLS Encryption Mode: Full (Strict)
