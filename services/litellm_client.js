@@ -12,13 +12,17 @@ const client = axios.create({
 });
 
 function translateModel(modelName) {
-    // Solo traducir si tenemos una clave de API configurada y apuntamos a producción
+    // Traducir nombres internos a los aliases registrados en LiteLLM producción
     if (LITELLM_KEY && LITELLM_URL && LITELLM_URL.includes('dental-a.com')) {
-        if (modelName.includes('claude-sonnet-4.6') || modelName.includes('claude-sonnet') || modelName.includes('claude-3-5-sonnet')) {
-            return 'claude-3.5-sonnet';
+        if (modelName.includes('claude-sonnet-4.6') || modelName.includes('claude-sonnet-4-6') ||
+            modelName.includes('claude-sonnet') || modelName.includes('claude-3-5-sonnet') ||
+            modelName.includes('claude-3.5-sonnet') || modelName.includes('claude')) {
+            return 'claude-sonnet-4.6'; // → anthropic/claude-sonnet-4-6
         }
-        if (modelName.includes('chatgpt-5.4-mini') || modelName.includes('chatgpt-5.4') || modelName.includes('gpt-4o-mini')) {
-            return 'gpt-4o-mini';
+        if (modelName.includes('chatgpt-5.4-mini') || modelName.includes('gpt-5.4-mini') ||
+            modelName.includes('chatgpt-5.4') || modelName.includes('gpt-4o-mini') ||
+            modelName.includes('mini')) {
+            return 'chatgpt-5.4-mini'; // → openai/gpt-5.4-mini
         }
     }
     return modelName;
@@ -27,14 +31,16 @@ function translateModel(modelName) {
 async function routePrompt(taskType, prompt, messages) {
     let model;
     if (['rag', 'clinical', 'reasoning'].includes(taskType)) {
-        model = 'claude-3-5-sonnet-20241022';
+        // Tareas complejas → Claude Sonnet 4.6 (Prompt Caching activo)
+        model = 'claude-sonnet-4.6';
     } else {
-        model = 'gpt-4o-mini';
+        // Tareas rápidas/baratas → ChatGPT-5.4-mini
+        model = 'chatgpt-5.4-mini';
     }
     return {
         model_used: model,
         primary: model,
-        fallback: 'gpt-4o-mini'
+        fallback: 'chatgpt-5.4-mini' // fallback siempre al modelo económico
     };
 }
 
