@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: easyappointments_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DENTALA_EASYAPPOINTMENTS_DB_ROOT_PASSWORD:-root_password_here}
+      MYSQL_DATABASE: easyappointments
+      MYSQL_USER: easy_user
+      MYSQL_PASSWORD: ${DENTALA_EASYAPPOINTMENTS_DB_PASSWORD:-db_password_here}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - easyappointments_net
+
+  easyappointments:
+    image: alextselegidis/easyappointments:latest
+    container_name: easyappointments_web
+    restart: always
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      - BASE_URL=${DENTALA_EASYAPPOINTMENTS_URL:-https://agenda.dental-a.com}
+      - DB_HOST=mysql
+      - DB_NAME=easyappointments
+      - DB_USERNAME=easy_user
+      - DB_PASSWORD=${DENTALA_EASYAPPOINTMENTS_DB_PASSWORD:-db_password_here}
+      - MAIL_PROTOCOL=mail
+    depends_on:
+      - mysql
+    volumes:
+      - ea_storage:/var/www/html/storage
+    networks:
+      - easyappointments_net
+
+volumes:
+  mysql_data:
+  ea_storage:
+
+networks:
+  easyappointments_net:
+    driver: bridge
