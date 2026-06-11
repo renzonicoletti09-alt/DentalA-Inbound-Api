@@ -1,0 +1,34 @@
+# ====================================================================
+# VARIABLES DE ENTORNO PARA HARDENING DE n8n EN COOLIFY (DENTALA)
+# ====================================================================
+# Copiar y pegar estas variables en la sección "Environment Variables" 
+# de tu servicio de n8n dentro del panel de Coolify.
+
+# 1. PODA AUTOMÁTICA DE LOGS (Evitar crecimiento de DB y fuga de datos médicos)
+# Activa el sistema de limpieza automática de ejecuciones
+EXECUTIONS_DATA_PRUNE=true
+
+# Tiempo máximo de retención de ejecuciones en horas (168 horas = 7 días)
+# Esto garantiza que el historial clínico de los webhooks se elimine rápido.
+EXECUTIONS_DATA_MAX_AGE=168
+
+# Intervalo en segundos en el que corre el proceso de limpieza (3600s = 1 hora)
+EXECUTIONS_DATA_PRUNE_TIMEOUT=3600
+
+# Purgar datos de ejecuciones exitosas inmediatamente (conservar solo fallos)
+# RECOMENDADO en entornos médicos para que no se almacenen chats en texto plano.
+EXECUTIONS_PROCESS_DATA_PRUNE=true
+
+# 2. SEGURIDAD DE ACCESO Y SESIONES
+# Deshabilitar el sandbox de Javascript para nodos de código si confías en los flujos
+# (Para mejorar rendimiento, pero mantener activado si ejecutas código dinámico de terceros)
+# N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+
+# 3. LÍMITE DE TAMAÑO DE PAYLOAD
+# Evitar ataques de denegación de servicio (DoS) por envío de archivos gigantes
+N8N_PAYLOAD_SIZE_LIMIT=10mb
+
+# 4. CONFIGURACIÓN DE CONEXIÓN CON SUPABASE/POSTGRES INTERNO
+# Usar el usuario limitado creado con el script SQL
+DB_POSTGRESDB_USER=n8n_app_user
+DB_POSTGRESDB_PASSWORD=<DENTALA_SUPABASE_N8N_APP_USER_PASSWORD>
