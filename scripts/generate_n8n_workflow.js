@@ -1,0 +1,148 @@
+const fs = require('fs');
+
+const workflow = {
+  "name": "Motor Inbound DentalA (Nativo)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-inbound",
+      "name": "Webhook Chatwoot",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "webhookId": "whatsapp-inbound-dental-a"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nreturn {\n  patient_phone: body.conversation?.meta?.sender?.phone_number || body.sender?.phone_number,\n  message_content: body.messages?.[0]?.content || '',\n  dentist_id: 1\n};"
+      },
+      "id": "code-preprocess",
+      "name": "Extract Variables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://litellm.dental-a.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-litellm-master-key"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gemini-1.5-flash"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"system\", \"content\": \"Eres un asistente dental. Responde al paciente de manera amigable.\"}, {\"role\": \"user\", \"content\": \"{{ $json.message_content }}\"}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-litellm",
+      "name": "Triaje LiteLLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [400, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chatwood.dental-a.com/api/v1/accounts/1/conversations/{{ $('Webhook Chatwoot').item.json.body.conversation.id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "uRE1AvCvN1GEMUE3DMvjJgew"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.choices[0].message.content }}"
+            },
+            {
+              "name": "message_type",
+              "value": "outgoing"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-chatwoot",
+      "name": "Respuesta Chatwoot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [600, 0]
+    }
+  ],
+  "connections": {
+    "Webhook Chatwoot": {
+      "main": [
+        [
+          {
+            "node": "Extract Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Variables": {
+      "main": [
+        [
+          {
+            "node": "Triaje LiteLLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Triaje LiteLLM": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Chatwoot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+};
+
+fs.writeFileSync('n8n_motor_inbound_native.json', JSON.stringify(workflow, null, 2));
+console.log('n8n_motor_inbound_native.json generated successfully!');
